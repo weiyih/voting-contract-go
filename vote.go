@@ -10,6 +10,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi" // https://godoc.org/github.com/hyperledger/fabric-contract-api-go
 )
@@ -48,9 +49,10 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("Error - ballot %s already exists", id)
 	}
 	
+	hashId := hash(id)
 	// Create vote Object
 	vote := Vote{
-		Id: 			id,
+		Id: 			hashId,
 		ElectionId: 	electionId,
 		DistrictId:     districtId,
 		CandidateId:   	candidateId,
@@ -105,6 +107,19 @@ func (s *SmartContract) BallotExists(ctx contractapi.TransactionContextInterface
 	}
 
 	return assetJSON != nil, nil
+}
+
+// https://softwareengineering.stackexchange.com/questions/49550/which-hashing-algorithm-is-best-for-uniqueness-and-speed
+// https://golang.org/pkg/hash/crc32
+func hash(id string) string {
+	// Koopman's polynomial.
+    // Also has better error detection characteristics than IEEE.
+    // https://dx.doi.org/10.1109/DSN.2002.1028931
+	koopmanTable := crc32.MakeTable(crc32.Koopman)
+
+	b := []byte(id)
+	hash := crc32.checksum(b, koopmanTable)
+	return hash
 }
 
 func main() {
