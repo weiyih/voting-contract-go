@@ -1,12 +1,9 @@
-// Based on sample from
-// https://github.com/hyperledger/fabric-samples/blob/master/chaincode/fabcar/go/fabcar.go
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package main
 
-/* Imports
- * 4 utility libraries for formatting, handling bytes, reading and writing JSON, and string manipulation
- * 2 specific Hyperledger Fabric specific libraries for Smart Contracts
- */
 import (
 	"encoding/json"
 	"fmt"
@@ -15,24 +12,20 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/contractapi" // https://godoc.org/github.com/hyperledger/fabric-contract-api-go
 )
 
-// SmartContract provides functions for CRUD
-type SmartContract struct {
+// BallotContract contract for managing CRUD for Ballot
+type BallotContract struct {
 	contractapi.Contract
 }
 
-// Vote Object
-type Ballot struct {
-	Id				string `json:"id"`
-	ElectionId 		string `json:"election_id"`
-	DistrictId      string `json:"district_id"`
-	CandidateId   	string `json:"candidate_id"`
-	Timestamp  		string `json:"timestamp"`
-}
+// BallotExists returns true when asset with given ID exists in world state
+func (s *SmartContract) BallotExists(ctx contractapi.TransactionContextInterface, ballotID string) (bool, error) {
+	hashId = hash(ballotID)
+	assetJSON, err := ctx.GetStub().GetState(hashId)
+	if err != nil {
+		return false, fmt.Errorf("Failed to read from world state: %v", err)
+	}
 
-// QueryResult handle result of Vote query
-type QueryResult struct {
-	Key    string `json:"Key"`
-	Record *Vote
+	return assetJSON != nil, nil
 }
 
 // CreateBallot
@@ -43,15 +36,15 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 	// Checks if ballot already exists
 	exists, err := s.BallotExists(ctx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error - Could not read from world state. %s", err)
 	}
 	if exists {
-		return fmt.Errorf("Error - ballot %s already exists", id)
+		return fmt.Errorf("Error - Ballot %s already exists", id)
 	}
 	
 	hashId := hash(id)
 	// Create vote Object
-	vote := Vote{
+	ballot := Ballot{
 		Id: 			hashId,
 		ElectionId: 	electionId,
 		DistrictId:     districtId,
@@ -59,16 +52,16 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 		Timestamp:  	timestamp,
 	}
 
-	assetJSON, err := json.Marshal(asset)
+	ballotJSON, err := json.Marshal(ballot)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, assetJSON)
+	return ctx.GetStub().PutState(hashId, ballotJSON)
 }
 
 // Returns all ballots found in world state
-func (s *SmartContract) GetAllBallots(ctx contractapi.TransactionContextInterface) ([]QueryResult, error) {
+func (s *SmartContract) GetAllBallots(ctx contractapi.TransactionContextInterface) ([]*Ballot, error) {
 
 	// range query with empty string for startKey and endKey does an
 	// open-ended query of all assets in the chaincode namespace.
@@ -100,15 +93,6 @@ func (s *SmartContract) GetAllBallots(ctx contractapi.TransactionContextInterfac
 	return results, nil
 }
 
-func (s *SmartContract) BallotExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
-	if err != nil {
-		return false, fmt.Errorf("Failed to read from world state: %v", err)
-	}
-
-	return assetJSON != nil, nil
-}
-
 // https://softwareengineering.stackexchange.com/questions/49550/which-hashing-algorithm-is-best-for-uniqueness-and-speed
 // https://golang.org/pkg/hash/crc32
 func hash(id string) string {
@@ -120,20 +104,4 @@ func hash(id string) string {
 	b := []byte(id)
 	hash := crc32.checksum(b, koopmanTable)
 	return hash
-}
-
-func main() {
-
-	smartContract := new(SmartContract)
-
-	chaincode, err := contractapi.NewChaincode(smartContract)
-
-	if err != nil {
-		fmt.Printf("Error create chaincode: %s", err.Error())
-		return
-	}
-
-	if err := chaincode.Start(); err != nil {
-		fmt.Printf("Error starting chaincode: %s", err.Error())
-	}
 }
