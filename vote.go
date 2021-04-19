@@ -20,11 +20,12 @@ type SmartContract struct {
 }
 
 // Vote Object
-type Vote struct {
-	ElectionID string `json:"election_id"`
-	Ward       string `json:"ward"`
-	Selected   string `json:"selected_candidate"`
-	Timestamp  string `json:"timestamp"`
+type Ballot struct {
+	Id				string `json:"id"`
+	ElectionId 		string `json:"election_id"`
+	DistrictId      string `json:"district_id"`
+	CandidateId   	string `json:"candidate_id"`
+	Timestamp  		string `json:"timestamp"`
 }
 
 // QueryResult handle result of Vote query
@@ -33,39 +34,50 @@ type QueryResult struct {
 	Record *Vote
 }
 
-// CreateVote s
+// CreateBallot
 // TransactionContextInterface defines the interface which TransactionContext meets. This can be taken by transacton functions on a contract
 // which has not set a custom transaction context to allow transaction functions to take an interface to simplify unit testing.
 // https://godoc.org/github.com/hyperledger/fabric-contract-api-go/contractapi#TransactionContextInterface
-func (s *SmartContract) CreateVote(ctx contractapi.TransactionContextInterface, voteKey string, electionID string, wardID string, candidate string, timestamp string) error {
+func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, id string, electionId string, districtId string, candidateId string, timestamp string) error {
+	// Checks if ballot already exists
+	exists, err := s.BallotExists(ctx, id)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return fmt.Errorf("Error - ballot %s already exists", id)
+	}
+	
 	// Create vote Object
 	vote := Vote{
-		ElectionID: electionID,
-		Ward:       wardID,
-		Selected:   candidate,
-		Timestamp:  timestamp,
+		Id: 			id,
+		ElectionId: 	electionId,
+		DistrictId:     districtId,
+		CandidateId:   	candidateId,
+		Timestamp:  	timestamp,
 	}
 
-	// Note _ replaces the error
-	voteAsBytes, _ := json.Marshal(vote)
+	assetJSON, err := json.Marshal(asset)
+	if err != nil {
+		return err
+	}
 
-	return ctx.GetStub().PutState(voteKey, voteAsBytes)
+	return ctx.GetStub().PutState(id, assetJSON)
 }
 
-// QueryAllVotes returns all votes found in world state
-func (s *SmartContract) QueryAllVotes(ctx contractapi.TransactionContextInterface) ([]QueryResult, error) {
+// Returns all ballots found in world state
+func (s *SmartContract) GetAllBallots(ctx contractapi.TransactionContextInterface) ([]QueryResult, error) {
 
-	startKey := "VOTE000"
-	endKey := "VOTE999"
-
-	resultsIterator, err := ctx.GetStub().GetStateByRange(startKey, endKey)
+	// range query with empty string for startKey and endKey does an
+	// open-ended query of all assets in the chaincode namespace.
+	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
 
 	if err != nil {
 		return nil, err
 	}
 	defer resultsIterator.Close()
 
-	results := []QueryResult{}
+	results := []*Ballot
 
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
@@ -74,14 +86,25 @@ func (s *SmartContract) QueryAllVotes(ctx contractapi.TransactionContextInterfac
 			return nil, err
 		}
 
-		vote := new(Vote)
-		_ = json.Unmarshal(queryResponse.Value, vote)
+		var ballot Ballot
 
-		queryResult := QueryResult{Key: queryResponse.Key, Record: vote}
-		results = append(results, queryResult)
+		err = json.Unmarshal(queryResponse.Value, &asset)
+		if err != nil {
+			return nil, err
+		}
+		assets = append(assets, &asset)
 	}
 
 	return results, nil
+}
+
+func (s *SmartContract) BallotExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("Failed to read from world state: %v", err)
+	}
+
+	return assetJSON != nil, nil
 }
 
 func main() {
