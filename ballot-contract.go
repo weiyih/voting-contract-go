@@ -18,8 +18,8 @@ type BallotContract struct {
 }
 
 // BallotExists returns true when asset with given ID exists in world state
-func (s *BallotContract) BallotExists(ctx contractapi.TransactionContextInterface, ballotID string) (bool, error) {
-	hashId := hash(ballotID)
+func (s *BallotContract) BallotExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+	hashId := hash(id)
 	assetJSON, err := ctx.GetStub().GetState(hashId)
 	if err != nil {
 		return false, fmt.Errorf("Failed to read from world state: %v", err)
@@ -59,6 +59,40 @@ func (s *BallotContract) CreateBallot(ctx contractapi.TransactionContextInterfac
 
 	return ctx.GetStub().PutState(hashId, ballotJSON)
 }
+
+// Returns the timestamp of a ballot if it exists
+func (s *BallotContract) ReadBallot(ctx contractapi.TransactionContextInterface, id string) (*Ballot, error) {
+	exists, err := s.BallotExists(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("Error - Could not read from world state. %s", err)
+	}
+	if exists {
+		return nil, fmt.Errorf("Error - Ballot %s already exists", id)
+	}
+
+	hashId := hash(id)
+	bytes, _ := ctx.GetStub().GetState(hashId)
+
+	ballot := new(Ballot)
+
+	err = json.Unmarshal(bytes, ballot)
+
+	if err != nil {
+		return nil, fmt.Errorf("Could not unmarshal world state data to type Ballot")
+	}
+
+	return ballot, nil
+}
+
+func (c *MyAssetContract) ReadMyAsset(ctx contractapi.TransactionContextInterface, myAssetID string) (*MyAsset, error) {
+	exists, err := c.MyAssetExists(ctx, myAssetID)
+
+
+	
+
+
+
+
 
 // Returns all ballots found in world state
 func (s *BallotContract) GetAllBallots(ctx contractapi.TransactionContextInterface) ([]*Ballot, error) {
