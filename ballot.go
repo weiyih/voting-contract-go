@@ -8,8 +8,8 @@ package main
 type Ballot struct {
 	Id				string 	`json:"id"`
 	ElectionId 		string 	`json:"election_id"`
-	DistrictId      int		`json:"district_id"`
+	DistrictId      string	`json:"district_id"`
 	CandidateId   	string 	`json:"candidate_id"`
-	Timestamp  		int 	`json:"timestamp"`
+	Timestamp  		string 	`json:"timestamp"`
 }
 

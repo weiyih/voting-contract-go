@@ -11,7 +11,7 @@ import (
 
 func main() {
 	ballotContract := new(BallotContract)
-	ballotContract.Info.Version = "0.0.1"
+	ballotContract.Info.Version = "0.0.3"
 	ballotContract.Info.Description = "Ballot Contract"
 	ballotContract.Info.License = new(metadata.LicenseMetadata)
 	ballotContract.Info.License.Name = "Apache-2.0"
@@ -20,7 +20,7 @@ func main() {
 
 	chaincode, err := contractapi.NewChaincode(ballotContract)
 	chaincode.Info.Title = "vote-contract-go chaincode"
-	chaincode.Info.Version = "0.0.1"
+	chaincode.Info.Version = "0.0.3"
 
 	if err != nil {
 		panic("Could not create chaincode from BallotContract." + err.Error())

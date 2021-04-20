@@ -32,7 +32,7 @@ func (s *BallotContract) BallotExists(ctx contractapi.TransactionContextInterfac
 // TransactionContextInterface defines the interface which TransactionContext meets. This can be taken by transacton functions on a contract
 // which has not set a custom transaction context to allow transaction functions to take an interface to simplify unit testing.
 // https://godoc.org/github.com/hyperledger/fabric-contract-api-go/contractapi#TransactionContextInterface
-func (s *BallotContract) CreateBallot(ctx contractapi.TransactionContextInterface, id string, electionId string, districtId int, candidateId string, timestamp int) error {
+func (s *BallotContract) CreateBallot(ctx contractapi.TransactionContextInterface, id string, electionId string, districtId string, candidateId string, timestamp string) error {
 	// Checks if ballot already exists
 	exists, err := s.BallotExists(ctx, id)
 	if err != nil {
@@ -83,16 +83,6 @@ func (s *BallotContract) ReadBallot(ctx contractapi.TransactionContextInterface,
 
 	return ballot, nil
 }
-
-func (c *MyAssetContract) ReadMyAsset(ctx contractapi.TransactionContextInterface, myAssetID string) (*MyAsset, error) {
-	exists, err := c.MyAssetExists(ctx, myAssetID)
-
-
-	
-
-
-
-
 
 // Returns all ballots found in world state
 func (s *BallotContract) GetAllBallots(ctx contractapi.TransactionContextInterface) ([]*Ballot, error) {
