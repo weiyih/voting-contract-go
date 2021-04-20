@@ -18,8 +18,8 @@ type BallotContract struct {
 }
 
 // BallotExists returns true when asset with given ID exists in world state
-func (s *SmartContract) BallotExists(ctx contractapi.TransactionContextInterface, ballotID string) (bool, error) {
-	hashId = hash(ballotID)
+func (s *BallotContract) BallotExists(ctx contractapi.TransactionContextInterface, ballotID string) (bool, error) {
+	hashId := hash(ballotID)
 	assetJSON, err := ctx.GetStub().GetState(hashId)
 	if err != nil {
 		return false, fmt.Errorf("Failed to read from world state: %v", err)
@@ -32,7 +32,7 @@ func (s *SmartContract) BallotExists(ctx contractapi.TransactionContextInterface
 // TransactionContextInterface defines the interface which TransactionContext meets. This can be taken by transacton functions on a contract
 // which has not set a custom transaction context to allow transaction functions to take an interface to simplify unit testing.
 // https://godoc.org/github.com/hyperledger/fabric-contract-api-go/contractapi#TransactionContextInterface
-func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface, id string, electionId string, districtId string, candidateId string, timestamp string) error {
+func (s *BallotContract) CreateBallot(ctx contractapi.TransactionContextInterface, id string, electionId string, districtId int, candidateId string, timestamp int) error {
 	// Checks if ballot already exists
 	exists, err := s.BallotExists(ctx, id)
 	if err != nil {
@@ -61,7 +61,7 @@ func (s *SmartContract) CreateBallot(ctx contractapi.TransactionContextInterface
 }
 
 // Returns all ballots found in world state
-func (s *SmartContract) GetAllBallots(ctx contractapi.TransactionContextInterface) ([]*Ballot, error) {
+func (s *BallotContract) GetAllBallots(ctx contractapi.TransactionContextInterface) ([]*Ballot, error) {
 
 	// range query with empty string for startKey and endKey does an
 	// open-ended query of all assets in the chaincode namespace.
@@ -72,7 +72,7 @@ func (s *SmartContract) GetAllBallots(ctx contractapi.TransactionContextInterfac
 	}
 	defer resultsIterator.Close()
 
-	results := []*Ballot
+	var ballots []*Ballot
 
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
@@ -83,14 +83,14 @@ func (s *SmartContract) GetAllBallots(ctx contractapi.TransactionContextInterfac
 
 		var ballot Ballot
 
-		err = json.Unmarshal(queryResponse.Value, &asset)
+		err = json.Unmarshal(queryResponse.Value, &ballot)
 		if err != nil {
 			return nil, err
 		}
-		assets = append(assets, &asset)
+		ballots = append(ballots, &ballot)
 	}
 
-	return results, nil
+	return ballots, nil
 }
 
 // https://softwareengineering.stackexchange.com/questions/49550/which-hashing-algorithm-is-best-for-uniqueness-and-speed
@@ -100,8 +100,8 @@ func hash(id string) string {
     // Also has better error detection characteristics than IEEE.
     // https://dx.doi.org/10.1109/DSN.2002.1028931
 	koopmanTable := crc32.MakeTable(crc32.Koopman)
-
 	b := []byte(id)
-	hash := crc32.checksum(b, koopmanTable)
-	return hash
+	hash := crc32.Checksum(b, koopmanTable)
+	
+	return string(hash)
 }
